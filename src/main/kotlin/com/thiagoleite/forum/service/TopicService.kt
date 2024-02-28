@@ -3,6 +3,7 @@ package com.thiagoleite.forum.service
 import com.thiagoleite.forum.dtos.NewTopicForm
 import com.thiagoleite.forum.dtos.TopicView
 import com.thiagoleite.forum.dtos.UpdateTopicForm
+import com.thiagoleite.forum.exception.NotFoundException
 import com.thiagoleite.forum.mapper.TopicFormMapper
 import com.thiagoleite.forum.mapper.TopicViewMapper
 import com.thiagoleite.forum.model.Topic
@@ -15,7 +16,8 @@ import kotlin.collections.ArrayList
 class TopicService(
     private var topics: List<Topic> = ArrayList(),
     private val topicViewMapper: TopicViewMapper,
-    private val topicFormMapper: TopicFormMapper
+    private val topicFormMapper: TopicFormMapper,
+    private val notFoundMessage: String = "Topic Not Found"
 ) {
 
     fun list(): List<TopicView> {
@@ -27,7 +29,7 @@ class TopicService(
     fun getById(id: Long): TopicView {
         val topic = topics.stream().filter { it ->
             it.id == id
-        }.findFirst().get()
+        }.findFirst().orElseThrow{NotFoundException(notFoundMessage)}
         return topicViewMapper.map(topic)
     }
 
@@ -41,7 +43,7 @@ class TopicService(
     fun update(form: UpdateTopicForm): TopicView {
         val topic = topics.stream().filter { it ->
             it.id == form.id
-        }.findFirst().get()
+        }.findFirst().orElseThrow{NotFoundException(notFoundMessage)}
         val updated = Topic(
             id = form.id,
             title = form.title,
@@ -59,7 +61,7 @@ class TopicService(
     fun delete(id: Long) {
         val topic = topics.stream().filter{ it ->
             it.id == id
-        }.findFirst().get()
+        }.findFirst().orElseThrow{NotFoundException(notFoundMessage)}
         topics.minus(topic)
     }
 }
