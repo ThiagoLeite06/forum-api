@@ -1,73 +1,67 @@
 package com.thiagoleite.forum.service
 
-import com.thiagoleite.forum.model.Course
+import com.thiagoleite.forum.dtos.NewTopicForm
+import com.thiagoleite.forum.dtos.TopicView
+import com.thiagoleite.forum.dtos.UpdateTopicForm
+import com.thiagoleite.forum.exception.NotFoundException
+import com.thiagoleite.forum.mapper.TopicFormMapper
+import com.thiagoleite.forum.mapper.TopicViewMapper
 import com.thiagoleite.forum.model.Topic
-import com.thiagoleite.forum.model.User
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
-import java.util.*
+import java.util.stream.Collectors
 import kotlin.collections.ArrayList
 
 @Service
-class TopicService(private var topics: List<Topic>) {
+class TopicService(
+    private var topics: List<Topic> = ArrayList(),
+    private val topicViewMapper: TopicViewMapper,
+    private val topicFormMapper: TopicFormMapper,
+    private val notFoundMessage: String = "Topic Not Found"
+) {
 
-    init {
-        val topic = Topic(
-            id = 1,
-            title = "Duvida Kotlin",
-            message = "Variaveis no Kotlin",
-            course = Course (
-                id = 1,
-                name = "Kotlin",
-                category =  "Programacao"
-            ),
-            author = User(
-                id = 1,
-                name = "Ana da Silva",
-                email = "ana@email.com"
-            )
-        )
-
-        val topic2 = Topic(
-            id = 2,
-            title = "Duvida Android",
-            message = "Variaveis no Kotlin",
-            course = Course (
-                id = 1,
-                name = "Kotlin",
-                category =  "Programacao"
-            ),
-            author = User(
-                id = 1,
-                name = "Ana da Silva",
-                email = "ana@email.com"
-            )
-        )
-
-        val topic3 = Topic(
-            id = 3,
-            title = "Duvida iOS",
-            message = "Variaveis no Kotlin",
-            course = Course (
-                id = 1,
-                name = "Kotlin",
-                category =  "Programacao"
-            ),
-            author = User(
-                id = 1,
-                name = "Ana da Silva",
-                email = "ana@email.com"
-            )
-        )
-
-        topics = Arrays.asList(topic, topic2, topic3)
-    }
-    fun list(): List<Topic> {
-        return topics
+    fun list(): List<TopicView> {
+        return topics.stream().map { it ->
+            topicViewMapper.map(it)
+        }.collect(Collectors.toList())
     }
 
-    fun getById(id: Long): Topic {
-        return topics.stream().filter { t ->
-            t.id == id
-        }.findFirst().get()
+    fun getById(id: Long): TopicView {
+        val topic = topics.stream().filter { it ->
+            it.id == id
+        }.findFirst().orElseThrow{NotFoundException(notFoundMessage)}
+        return topicViewMapper.map(topic)
+    }
+
+    fun createTopic(form: NewTopicForm): TopicView {
+       val topic = topicFormMapper.map(form)
+        topic.id = topics.size.toLong() + 1
+        topics = topics.plus(topic)
+        return topicViewMapper.map(topic)
+    }
+
+    fun update(form: UpdateTopicForm): TopicView {
+        val topic = topics.stream().filter { it ->
+            it.id == form.id
+        }.findFirst().orElseThrow{NotFoundException(notFoundMessage)}
+        val updated = Topic(
+            id = form.id,
+            title = form.title,
+            message = form.message,
+            author = topic.author,
+            course = topic.course,
+            responses = topic.responses,
+            status = topic.status,
+            createdAt = topic.createdAt
+        )
+        topics = topics.minus(topic).plus(updated)
+        return topicViewMapper.map(updated)
+    }
+
+    fun delete(id: Long) {
+        val topic = topics.stream().filter{ it ->
+            it.id == id
+        }.findFirst().orElseThrow{NotFoundException(notFoundMessage)}
+        topics = topics.minus(topic)
     }
 }
