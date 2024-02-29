@@ -62,6 +62,6 @@ class TopicService(
         val topic = topics.stream().filter{ it ->
             it.id == id
         }.findFirst().orElseThrow{NotFoundException(notFoundMessage)}
-        topics.minus(topic)
+        topics = topics.minus(topic)
     }
 }
